@@ -161,20 +161,38 @@ class Display {
             this.cx.closePath();
             this.cx.stroke();
 
-            if (game.trueOffset) {
+            if (game.trueOffset && game.mouse.pos) {
+                var round16 = x => Math.ceil(x/16)*16;
+
+                var currentIsland = game.overworld.islands.find(island => {
+                    return island &&
+                        island.pos.equals(new Vector2D(
+                            Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4 / game.overworld.islandSize.x),
+                            Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4 / game.overworld.islandSize.y)
+                        ));
+                }) || null;
+                
+                var currentStructure = null;
+                if (currentIsland) {
+                    currentStructure = currentIsland.structures.find(structure => {
+                        return structure.x === round16(Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4 - currentIsland.pos.x * game.overworld.islandSize.x) - 8) &&
+                            structure.y === round16(Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4 - currentIsland.pos.y * game.overworld.islandSize.y) - 8);
+                    }) || null;
+                }
+
                 this.cx.beginPath();
-                this.cx.moveTo(innerWidth / 2 + game.trueOffset.x - 32, innerHeight / 2 + game.trueOffset.y - 32);
-                this.cx.lineTo(innerWidth / 2 + game.trueOffset.x + 32, innerHeight / 2 + game.trueOffset.y - 32);
-                this.cx.lineTo(innerWidth / 2 + game.trueOffset.x + 32, innerHeight / 2 + game.trueOffset.y + 32);
-                this.cx.lineTo(innerWidth / 2 + game.trueOffset.x - 32, innerHeight / 2 + game.trueOffset.y + 32);
+                this.cx.moveTo(game.mouse.pos.x + game.currentOffset.x - 32, game.mouse.pos.y + game.currentOffset.y - 32);
+                this.cx.lineTo(game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y - 32);
+                this.cx.lineTo(game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y + 32);
+                this.cx.lineTo(game.mouse.pos.x + game.currentOffset.x - 32, game.mouse.pos.y + game.currentOffset.y + 32);
                 this.cx.closePath();
                 this.cx.stroke();
 
                 this.cx.fillStyle = '#fff';
                 this.cx.font = 32 + 'px consolas';
-                this.cx.fillText("UNKNOWN LOCATION", 16 + innerWidth / 2 + game.trueOffset.x + 32, innerHeight / 2 + game.trueOffset.y - 16);
-                this.cx.fillText("X:" + Math.floor((game.trueOffset.x + innerWidth / 2) / 4), 16 + innerWidth / 2 + game.trueOffset.x + 32, innerHeight / 2 + game.trueOffset.y + 8);
-                this.cx.fillText("Y:" + Math.floor((game.trueOffset.y + innerHeight / 2) / 4), 16 + innerWidth / 2 + game.trueOffset.x + 32, innerHeight / 2 + game.trueOffset.y + 32);
+                this.cx.fillText(currentStructure ? currentStructure.name : "Unknown Location", 16 + game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y - 16);
+                this.cx.fillText("X:" + Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4), 16 + game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y + 8);
+                this.cx.fillText("Y:" + Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4), 16 + game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y + 32);
             }
 
             this.cx.setLineDash([]);

@@ -1,7 +1,7 @@
 window.onload = () => {
     var scale = 4;
 
-    var gameSize = new Vector2D(8, 8);
+    var gameSize = new Vector2D(4, 4);
     var imageSize = new Vector2D(256, 256);
 
     var game = new Game(scale);

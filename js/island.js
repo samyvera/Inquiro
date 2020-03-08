@@ -1,5 +1,5 @@
 class Island {
-    constructor(pos, size, data, biomeData, terrainImg) {
+    constructor(pos, size, data, biomeData, terrainImg, structures) {
         this.pos = pos
         this.size = size;
 
@@ -7,5 +7,6 @@ class Island {
         this.biomeData = biomeData;
 
         this.terrainImg = terrainImg;
+        this.structures = structures;
     }
 }

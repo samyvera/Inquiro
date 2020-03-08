@@ -1,5 +1,90 @@
 var generateOverworld = async (size, islandSize) => {
 
+    // totro
+    var getTotroName = (lengMin, lengMax) => {
+        var vowels = new Array(
+            ['a', 7], ['a', 7], ['a', 7], ['a', 7], ['a', 7], ['a', 7],
+            ['e', 7], ['e', 7], ['e', 7], ['e', 7], ['e', 7], ['e', 7],
+            ['e', 7], ['e', 7], ['e', 7], ['e', 7], ['e', 7], ['e', 7],
+            ['i', 7], ['i', 7], ['i', 7], ['i', 7], ['i', 7], ['i', 7],
+            ['o', 7], ['o', 7], ['o', 7],
+            ['u', 7], ['u', 7], ['u', 7],
+            ['y', 7],
+            ['ae', 7], ['ai', 7], ['au', 7], ['ay', 7],
+            ['ea', 7], ['ei', 7], ['eo', 7], ['eu', 7],
+            ['ia', 7], ['ie', 7], ['io', 7],
+            ['oe', 7], ['oi', 7], ['ou', 7],
+            ['ua', 7], ['ue', 7],
+            ['eau', 7],
+            ['oue', 7], ['oui', 7],
+        );
+        var consonants = new Array(
+            ['b', 7],
+            ['c', 7], ['c', 7], ['c', 7], ['c', 7],
+            ['d', 7], ['d', 7], ['d', 7], ['d', 7],
+            ['f', 7], ['f', 7],
+            ['g', 7],
+            ['h', 7],
+            ['j', 7],
+            ['k', 7],
+            ['l', 7], ['l', 7], ['l', 7], ['l', 7], ['l', 7], ['l', 7],
+            ['m', 7], ['m', 7], ['m', 7],
+            ['n', 7], ['n', 7], ['n', 7], ['n', 7], ['n', 7], ['n', 7], ['n', 7], ['n', 7],
+            ['p', 7], ['p', 7], ['p', 7],
+            ['qu', 6], ['qu', 6],
+            ['r', 7], ['r', 7], ['r', 7], ['r', 7], ['r', 7], ['r', 7], ['r', 7],
+            ['s', 7], ['s', 7], ['s', 7], ['s', 7], ['s', 7], ['s', 7], ['s', 7], ['s', 7], ['s', 7],
+            ['t', 7], ['t', 7], ['t', 7], ['t', 7], ['t', 7], ['t', 7], ['t', 7], ['t', 7],
+            ['v', 7], ['v', 7],
+            ['w', 7],
+            ['x', 7],
+            ['z', 7],
+            ['br', 6],
+            ['ch', 7], ['cl', 6], ['cr', 6], ['ct', 6],
+            ['dr', 6],
+            ['fr', 6],
+            ['gr', 6], ['gl', 6], ['gn', 6],
+            ['ph', 7], ['pr', 6], ['pl', 6], ['ps', 6],
+            ['sb', 7], ['sc', 7], ['sd', 7], ['sh', 7], ['st', 7], ['sr', 6],  ['sl', 6], ['sp', 6],
+            ['th', 7], ['tr', 6], ['ts', 6],
+            ['str', 6],
+        );
+        
+        var rolldie = (minvalue, maxvalue) => {
+            var result;
+            while (1) {
+                result = Math.floor(Math.random() * (maxvalue - minvalue + 1) + minvalue);
+                if ((result >= minvalue) && (result <= maxvalue)) {
+                    return result;
+                }
+            }
+        }
+    
+        var data = '';
+        var genname = '';
+        var leng = rolldie(lengMin, lengMax);
+        var isvowel = rolldie(0, 1);
+    
+        for (var i = 1; i <= leng; i++) {
+            do {
+                data = isvowel ?
+                    vowels[rolldie(0, vowels.length - 1)] :
+                    consonants[rolldie(0, consonants.length - 1)];
+                if (i == 1) {
+                    if (data[1] & 2) break;
+                } else if (i == leng) {
+                    if (data[1] & 1) break;
+                } else {
+                    if (data[1] & 4) break;
+                }
+            } while (1);
+            genname += data[0];
+            isvowel = 1 - isvowel;
+        }
+    
+        return (genname.slice(0, 1)).toUpperCase() + genname.slice(1);
+    }
+
     // noise
 
     var permutation = new Uint8ClampedArray(256);
@@ -135,18 +220,35 @@ var generateOverworld = async (size, islandSize) => {
             biome: biome,
             volcano: volcano,
         }
-
+        
         var getMinMax = arr => {
             return arr.reduce(({min, max}, v) => ({
                 min: min < v ? min : v,
                 max: max > v ? max : v,
             }), { min: arr[0], max: arr[0] });
         }
+        var offset = Math.abs(Math.floor(getMinMax(data).min));
+
+        var structures = [];
+        for (let y = 0; y < size.y; y++) {
+            for (let x = 0; x < size.x; x++) {
+                var i = y * size.x + x;
+                var value = (data[i] + offset);
+                if (Math.random() >= 0.75 && x % 16 === 0 && y % 16 === 0 && value >= 11.75 && value < 12.75) {
+                    var name = getTotroName(3, 6);
+                    structures.push({
+                        x:x,
+                        y:y,
+                        value:value,
+                        name:name
+                    });
+                }
+            }
+        }
 
         //imgsrc
         var canvas = new OffscreenCanvas(size.x, size.y);
         var cx = canvas.getContext("2d");
-        var offset = Math.abs(Math.floor(getMinMax(data).min));
         for (let y = 0; y < size.y; y++) {
             for (let x = 0; x < size.x; x++) {
 
@@ -169,6 +271,15 @@ var generateOverworld = async (size, islandSize) => {
                 cx.fillRect(x, y, 1, 1);
             }
         }
+        cx.fillStyle = '#f00';
+        structures.forEach(structure => {
+            cx.fillRect(
+                structure.x - 4,
+                structure.y - 4,
+                8,
+                8
+            );
+        });
 
         return canvas[canvas.convertToBlob ? 'convertToBlob' : 'toBlob']().then(blob => {
             return {
@@ -176,7 +287,8 @@ var generateOverworld = async (size, islandSize) => {
                 size: size,
                 data: data,
                 biomeData: biomeData,
-                terrainImgSrc: new FileReaderSync().readAsDataURL(blob)
+                terrainImgSrc: new FileReaderSync().readAsDataURL(blob),
+                structures: structures
             }
         });
     }

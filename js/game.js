@@ -2,6 +2,7 @@ class Game {
     constructor(scale) {
         this.scale = scale;
         this.overworld = null;
+        this.mouse = null;
         this.loadProgress = 0;
 
         this.init = overworldData => {
@@ -16,7 +17,8 @@ class Game {
                         new Vector2D(island.size.x, island.size.y),
                         island.data,
                         island.biomeData,
-                        img
+                        img,
+                        island.structures
                     );
                 }
             });
@@ -30,6 +32,7 @@ class Game {
         }
 
         this.updateOffset = mouse => {
+            this.mouse = mouse;
             if (mouse.pos && mouse.click === 'release') {
                 this.offset = this.offset.plus(new Vector2D(
                     Math.abs(innerWidth / 2 - mouse.pos.x) * (mouse.pos.x < innerWidth / 2 ? -1 : 1),
