@@ -240,7 +240,7 @@ var generateOverworld = async (size, islandSize) => {
                         x:x,
                         y:y,
                         value:value,
-                        name:name
+                        name:name.charAt(0).toUpperCase() + name.substring(1)
                     });
                 }
             }
@@ -271,15 +271,6 @@ var generateOverworld = async (size, islandSize) => {
                 cx.fillRect(x, y, 1, 1);
             }
         }
-        cx.fillStyle = '#f00';
-        structures.forEach(structure => {
-            cx.fillRect(
-                structure.x - 4,
-                structure.y - 4,
-                8,
-                8
-            );
-        });
 
         return canvas[canvas.convertToBlob ? 'convertToBlob' : 'toBlob']().then(blob => {
             return {

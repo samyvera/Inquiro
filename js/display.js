@@ -21,7 +21,11 @@ class Display {
                 this.drawBackground(game);
                 this.cx.translate(game.currentOffset.x, game.currentOffset.y);
 
-                this.drawScanlines();
+                this.drawScanlines(game);
+
+                this.cx.translate(-game.currentOffset.x, -game.currentOffset.y);
+                this.drawBackground2(game);
+                this.cx.translate(game.currentOffset.x, game.currentOffset.y);
 
                 this.drawMap(game);
             } else {
@@ -56,7 +60,7 @@ class Display {
             this.frame++;
         }
 
-        this.drawScanlines = () => {
+        this.drawScanlines = game => {
             //scanlines
             this.cx.globalAlpha = 0.25;
             this.cx.lineWidth = 2;
@@ -79,6 +83,33 @@ class Display {
                     this.cx.closePath();
                 }
             }
+
+            this.cx.globalCompositeOperation = 'color-dodge';
+            var gradient = this.cx.createLinearGradient(-(this.canvas.width / 2) + (this.frame * 16) % (this.canvas.width * 2), 0, (this.frame * 16) % (this.canvas.width * 2), 0);
+            gradient.addColorStop(0, '#fff0');
+            gradient.addColorStop(0.5, '#ffff');
+            gradient.addColorStop(1, '#fff0');
+            this.cx.strokeStyle = gradient;
+            for (let i = 0; i < this.canvas.height; i++) {
+                if ((16 + i + (Math.floor(game.currentOffset.y) % 32)) % 32 === 0) {
+                    this.cx.beginPath();
+                    this.cx.moveTo(0, i);
+                    this.cx.lineTo(this.canvas.width, i);
+                    this.cx.stroke();
+                    this.cx.closePath();
+                }
+            }
+            for (let i = 0; i < this.canvas.width; i++) {
+                if ((16 + i  + (Math.floor(game.currentOffset.x) % 32)) % 32 === 0) {
+                    this.cx.beginPath();
+                    this.cx.moveTo(i, 0);
+                    this.cx.lineTo(i, this.canvas.height);
+                    this.cx.stroke();
+                    this.cx.closePath();
+                }
+            }
+            this.cx.globalCompositeOperation = 'normal';
+
             this.cx.globalAlpha = 1;
         }
 
@@ -122,6 +153,8 @@ class Display {
             );
         }
 
+        this.round16 = x => Math.ceil(x / 16) * 16;
+
         this.drawBackground = game => {
             this.cx.fillStyle = '#024';
             this.cx.fillRect(
@@ -147,55 +180,93 @@ class Display {
                     );
                 }
             });
+        }
+
+        this.drawBackground2 = game => {
+
+            this.cx.shadowBlur = 8;
+            this.cx.shadowColor = '#000';
 
             this.cx.strokeStyle = '#fff';
             this.cx.lineWidth = 4;
             this.cx.setLineDash([16, 4]);
             this.cx.lineDashOffset = -Math.floor((this.frame / 4) % 20);
 
-            this.cx.beginPath();
-            this.cx.moveTo(game.currentOffset.x + 8, game.currentOffset.y + 8);
-            this.cx.lineTo(game.currentOffset.x + innerWidth - 8, game.currentOffset.y + 8);
-            this.cx.lineTo(game.currentOffset.x + innerWidth - 8, game.currentOffset.y + innerHeight - 8);
-            this.cx.lineTo(game.currentOffset.x + 8, game.currentOffset.y + innerHeight - 8);
-            this.cx.closePath();
-            this.cx.stroke();
+            var hoveredIsland = null;
+            var hoveredStructure = null;
 
-            if (game.trueOffset && game.mouse.pos) {
-                var round16 = x => Math.ceil(x/16)*16;
-
-                var currentIsland = game.overworld.islands.find(island => {
-                    return island &&
+            game.overworld.islands.forEach(island => {
+                if (island) {
+                    var isHovered = game.mouse.pos &&
                         island.pos.equals(new Vector2D(
                             Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4 / game.overworld.islandSize.x),
-                            Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4 / game.overworld.islandSize.y)
-                        ));
-                }) || null;
-                
-                var currentStructure = null;
-                if (currentIsland) {
-                    currentStructure = currentIsland.structures.find(structure => {
-                        return structure.x === round16(Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4 - currentIsland.pos.x * game.overworld.islandSize.x) - 8) &&
-                            structure.y === round16(Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4 - currentIsland.pos.y * game.overworld.islandSize.y) - 8);
-                    }) || null;
+                            Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4 / game.overworld.islandSize.y)));
+                    hoveredIsland = isHovered ? island : hoveredIsland;
+
+                    island.structures.forEach(structure => {
+                        var isHovered = game.mouse.pos &&
+                            structure.x === this.round16(Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4 - island.pos.x * game.overworld.islandSize.x) - 8) &&
+                            structure.y === this.round16(Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4 - island.pos.y * game.overworld.islandSize.y) - 8);
+                        hoveredStructure = isHovered ? structure : hoveredStructure;
+
+                        var squareSize = isHovered ? 32 : 16;
+
+                        this.cx.fillStyle = '#fff';
+                        this.cx.fillRect(
+                            (island.pos.x * island.size.x + structure.x) * this.scale - 8,
+                            (island.pos.y * island.size.y + structure.y) * this.scale - 8,
+                            16,
+                            16
+                        );
+
+                        this.cx.strokeRect(
+                            (island.pos.x * island.size.x + structure.x) * this.scale - squareSize,
+                            (island.pos.y * island.size.y + structure.y) * this.scale - squareSize,
+                            squareSize * 2,
+                            squareSize * 2
+                        );
+                    });
                 }
+            });
 
-                this.cx.beginPath();
-                this.cx.moveTo(game.mouse.pos.x + game.currentOffset.x - 32, game.mouse.pos.y + game.currentOffset.y - 32);
-                this.cx.lineTo(game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y - 32);
-                this.cx.lineTo(game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y + 32);
-                this.cx.lineTo(game.mouse.pos.x + game.currentOffset.x - 32, game.mouse.pos.y + game.currentOffset.y + 32);
-                this.cx.closePath();
-                this.cx.stroke();
-
+            if (hoveredIsland && hoveredStructure) {
+                this.cx.fillStyle = '#0008';
+                this.cx.fillRect(
+                    8 + (hoveredIsland.pos.x * hoveredIsland.size.x + hoveredStructure.x) * this.scale + 32,
+                    (hoveredIsland.pos.y * hoveredIsland.size.y + hoveredStructure.y) * this.scale - 40,
+                    256,
+                    128
+                );
                 this.cx.fillStyle = '#fff';
                 this.cx.font = 32 + 'px consolas';
-                this.cx.fillText(currentStructure ? currentStructure.name : "Unknown Location", 16 + game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y - 16);
-                this.cx.fillText("X:" + Math.floor((game.currentOffset.x + game.mouse.pos.x) / 4), 16 + game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y + 8);
-                this.cx.fillText("Y:" + Math.floor((game.currentOffset.y + game.mouse.pos.y) / 4), 16 + game.mouse.pos.x + game.currentOffset.x + 32, game.mouse.pos.y + game.currentOffset.y + 32);
+                this.cx.textAlign = 'center';
+                this.cx.fillText(
+                    hoveredStructure.name,
+                    (hoveredIsland.pos.x * hoveredIsland.size.x + hoveredStructure.x) * this.scale + 32 + 128,
+                    (hoveredIsland.pos.y * hoveredIsland.size.y + hoveredStructure.y) * this.scale + 2
+                );
+                this.cx.textAlign = 'left';
+                this.cx.fillText(
+                    "X:" + (hoveredIsland.pos.x * hoveredIsland.size.x + hoveredStructure.x),
+                    16 + (hoveredIsland.pos.x * hoveredIsland.size.x + hoveredStructure.x) * this.scale + 32,
+                    (hoveredIsland.pos.y * hoveredIsland.size.y + hoveredStructure.y) * this.scale + 40 + 2
+                );
+                this.cx.fillText(
+                    "Y:" + (hoveredIsland.pos.y * hoveredIsland.size.y + hoveredStructure.y),
+                    16 + (hoveredIsland.pos.x * hoveredIsland.size.x + hoveredStructure.x) * this.scale + 32,
+                    (hoveredIsland.pos.y * hoveredIsland.size.y + hoveredStructure.y) * this.scale + 64 + 2
+                );
             }
 
+            this.cx.strokeRect(
+                game.currentOffset.x + 8,
+                game.currentOffset.y + 8,
+                innerWidth - 16,
+                innerHeight - 16
+            );
+
             this.cx.setLineDash([]);
+            this.cx.shadowBlur = 0;
         }
 
         this.resize = () => {
